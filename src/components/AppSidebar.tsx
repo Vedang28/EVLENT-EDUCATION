@@ -2,6 +2,7 @@ import {
   LayoutDashboard, BookOpen, ClipboardCheck, Bell, User, LogOut, Video,
   PlusCircle, Users, FileEdit, GraduationCap, ShieldCheck, BarChart3
 } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
