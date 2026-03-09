@@ -1,7 +1,8 @@
 import {
   LayoutDashboard, BookOpen, ClipboardCheck, Bell, User, LogOut, Video,
-  PlusCircle, Users, FileEdit, GraduationCap, ShieldCheck, BarChart3
+  PlusCircle, Users, FileEdit, ShieldCheck, BarChart3
 } from "lucide-react";
+import logo from "@/assets/logo.jpeg";
 import { useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -70,11 +71,11 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel className="px-4 py-3">
             {!collapsed ? (
-              <span className="flex items-center gap-2 text-base font-bold text-primary" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                📚 LearnHub
+              <span className="flex items-center gap-2 text-base font-bold text-primary">
+                <img src={logo} alt="Evlent Education" className="h-8 w-auto" />
               </span>
             ) : (
-              <span className="text-lg">📚</span>
+              <img src={logo} alt="Evlent Education" className="h-6 w-auto" />
             )}
           </SidebarGroupLabel>
           <SidebarGroupContent>
