@@ -420,15 +420,37 @@ export default function AdminUsers() {
                           )}
                         </TableCell>
                         <TableCell>
-                          {availableRoles.length > 0 && (
-                            <div className="flex gap-1 flex-wrap">
-                              {availableRoles.map((r) => (
-                                <Button key={r} size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => addRoleMutation.mutate({ userId: p.user_id, role: r })}>
-                                  <UserPlus className="h-3 w-3" /> {r}
+                          <div className="flex gap-1 flex-wrap items-center">
+                            {availableRoles.map((r) => (
+                              <Button key={r} size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => addRoleMutation.mutate({ userId: p.user_id, role: r })}>
+                                <UserPlus className="h-3 w-3" /> {r}
+                              </Button>
+                            ))}
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="destructive" className="h-7 text-xs gap-1">
+                                  <Trash2 className="h-3 w-3" /> Delete
                                 </Button>
-                              ))}
-                            </div>
-                          )}
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete User Account</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to permanently delete <strong>{p.name || p.email}</strong>? This will remove their account, roles, enrollments, and all assignments. This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteUserMutation.mutate(p.user_id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Delete Account
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
