@@ -13,6 +13,7 @@ import { useCourseProgress } from "@/hooks/useCourseProgress";
 export default function CourseDetail() {
   const { courseId } = useParams();
   const { user } = useAuth();
+  const { percentage, completedCount, total, isCompleted } = useCourseProgress(courseId);
 
   const { data: course } = useQuery({
     queryKey: ["course", courseId],
