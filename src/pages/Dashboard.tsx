@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookOpen, ClipboardCheck, Video, Bell } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { BookOpen, ClipboardCheck, Video, Bell, Award } from "lucide-react";
 import { Link } from "react-router-dom";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 
 export default function Dashboard() {
   const { user } = useAuth();
