@@ -107,8 +107,14 @@ export default function TeacherCourses() {
           {courses.map((course) => (
             <Link key={course.id} to={`/teacher/courses/${course.id}`}>
               <Card className="overflow-hidden hover:shadow-lg transition-shadow h-full">
-                <div className="h-28 bg-gradient-to-br from-primary/20 to-accent/10 flex items-center justify-center">
+                <div className="h-28 bg-gradient-to-br from-primary/20 to-accent/10 flex items-center justify-center relative">
                   <BookOpen className="h-10 w-10 text-primary/40" />
+                  {(() => {
+                    const status = (course as any).status || "pending";
+                    if (status === "pending") return <Badge variant="outline" className="absolute top-2 right-2 text-xs">Pending Approval</Badge>;
+                    if (status === "rejected") return <Badge variant="destructive" className="absolute top-2 right-2 text-xs">Rejected</Badge>;
+                    return null;
+                  })()}
                 </div>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg line-clamp-1">{course.title}</CardTitle>
