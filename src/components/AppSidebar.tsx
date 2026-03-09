@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, BookOpen, ClipboardCheck, Bell, User, LogOut, Video,
-  PlusCircle, Users, FileEdit, ShieldCheck, BarChart3
+  PlusCircle, Users, FileEdit, GraduationCap, ShieldCheck, BarChart3
 } from "lucide-react";
 import logo from "@/assets/logo.jpeg";
 import { useLocation } from "react-router-dom";
