@@ -66,6 +66,21 @@ export default function Dashboard() {
     enabled: !!enrollments && enrollments.length > 0,
   });
 
+  const { data: recentGrades } = useQuery({
+    queryKey: ["recent-grades", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("submissions")
+        .select("*, assignments(title, max_score, course_id, courses(title))")
+        .eq("student_id", user!.id)
+        .not("grade", "is", null)
+        .order("graded_at", { ascending: false })
+        .limit(5);
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+
   const { data: notifications } = useQuery({
     queryKey: ["notifications-unread", user?.id],
     queryFn: async () => {
