@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, BookOpen, ClipboardCheck, Bell, User, LogOut, Video,
-  PlusCircle, Users, FileEdit, GraduationCap
+  PlusCircle, Users, FileEdit, GraduationCap, ShieldCheck, BarChart3
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
