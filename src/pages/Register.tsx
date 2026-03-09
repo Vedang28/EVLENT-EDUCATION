@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { GraduationCap, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import logo from "@/assets/logo.jpeg";
 
 export default function Register() {
   const { user } = useAuth();
@@ -41,9 +42,7 @@ export default function Register() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-8">
         <div className="flex flex-col items-center gap-2">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary">
-            <GraduationCap className="h-8 w-8 text-primary-foreground" />
-          </div>
+          <img src={logo} alt="Evlent Education" className="h-16 w-auto" />
           <h1 className="text-3xl font-bold tracking-tight">Create account</h1>
           <p className="text-muted-foreground">Start your learning journey today</p>
         </div>
