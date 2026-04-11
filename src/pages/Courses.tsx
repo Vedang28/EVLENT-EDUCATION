@@ -15,9 +15,9 @@ export default function Courses() {
   const [search, setSearch] = useState("");
 
   const { data: allCourses, isLoading } = useQuery({
-    queryKey: ["all-courses"],
+    queryKey: ["all-courses", "approved"],
     queryFn: async () => {
-      const { data } = await supabase.from("courses").select("*").order("created_at", { ascending: false });
+      const { data } = await supabase.from("courses").select("*").eq("status", "approved").order("created_at", { ascending: false });
       return data ?? [];
     },
   });
