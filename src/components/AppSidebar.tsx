@@ -14,6 +14,7 @@ import {
   BarChart3,
   Calendar,
   Clock,
+  FlaskConical,
 } from "lucide-react";
 import logo from "@/assets/logo.jpeg";
 import { useLocation } from "react-router-dom";
@@ -63,6 +64,8 @@ const adminNav = [
   { title: "Dashboard", url: "/admin", icon: BarChart3 },
   { title: "Users", url: "/admin/users", icon: Users },
   { title: "Courses", url: "/admin/courses", icon: BookOpen },
+  { title: "Subjects", url: "/admin/subjects", icon: FlaskConical },
+  { title: "Grade Levels", url: "/admin/grade-levels", icon: GraduationCap },
   { title: "Notifications", url: "/notifications", icon: Bell },
   { title: "Profile", url: "/profile", icon: User },
 ];

@@ -4,16 +4,32 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BookOpen, Search, Plus, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useSubjects } from "@/hooks/useSubjects";
+import { useGradeLevels } from "@/hooks/useGradeLevels";
+import type { Database } from "@/integrations/supabase/types";
+
+type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
+type CourseWithJoins = CourseRow & {
+  subjects: { id: string; name: string } | null;
+  grade_levels: { id: string; name: string } | null;
+};
 
 export default function Courses() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState<string>("all");
+  const [gradeFilter, setGradeFilter] = useState<string>("all");
+
+  const { data: subjects } = useSubjects();
+  const { data: gradeLevels } = useGradeLevels();
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -23,8 +39,12 @@ export default function Courses() {
   const { data: allCourses, isLoading } = useQuery({
     queryKey: ["all-courses", "approved"],
     queryFn: async () => {
-      const { data } = await supabase.from("courses").select("*").eq("status", "approved").order("created_at", { ascending: false });
-      return data ?? [];
+      const { data } = await supabase
+        .from("courses")
+        .select("*, subjects(id, name), grade_levels(id, name)")
+        .eq("status", "approved")
+        .order("created_at", { ascending: false });
+      return (data ?? []) as CourseWithJoins[];
     },
   });
 
@@ -51,7 +71,14 @@ export default function Courses() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const filtered = allCourses?.filter((c) => c.title.toLowerCase().includes(debouncedSearch.toLowerCase())) ?? [];
+  const filtered = useMemo(() => {
+    return (allCourses ?? []).filter((c) => {
+      const matchesSearch = c.title.toLowerCase().includes(debouncedSearch.toLowerCase());
+      const matchesSubject = subjectFilter === "all" || c.subject_id === subjectFilter;
+      const matchesGrade = gradeFilter === "all" || c.grade_level_id === gradeFilter;
+      return matchesSearch && matchesSubject && matchesGrade;
+    });
+  }, [allCourses, debouncedSearch, subjectFilter, gradeFilter]);
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -64,6 +91,43 @@ export default function Courses() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input placeholder="Search courses..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="All Subjects" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Subjects</SelectItem>
+            {subjects?.map((s) => (
+              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={gradeFilter} onValueChange={setGradeFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="All Grades" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Grades</SelectItem>
+            {gradeLevels?.map((g) => (
+              <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {(subjectFilter !== "all" || gradeFilter !== "all") && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => { setSubjectFilter("all"); setGradeFilter("all"); }}
+          >
+            Clear filters
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -87,6 +151,18 @@ export default function Courses() {
                   <BookOpen className="h-12 w-12 text-primary/40" />
                 </div>
                 <CardHeader className="pb-2">
+                  <div className="flex flex-wrap gap-1.5 mb-1">
+                    {course.subjects && (
+                      <Badge variant="secondary" className="text-xs">
+                        {course.subjects.name}
+                      </Badge>
+                    )}
+                    {course.grade_levels && (
+                      <Badge variant="outline" className="text-xs">
+                        {course.grade_levels.name}
+                      </Badge>
+                    )}
+                  </div>
                   <CardTitle className="text-lg line-clamp-1">
                     <Link to={`/courses/${course.id}`} className="hover:text-primary transition-colors">
                       {course.title}

@@ -4,14 +4,18 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useSubjects } from "@/hooks/useSubjects";
+import { useGradeLevels } from "@/hooks/useGradeLevels";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
+import { courseSchema } from "@/lib/validations";
 
 export default function CreateCourse() {
   const { user } = useAuth();
@@ -19,12 +23,25 @@ export default function CreateCourse() {
   const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [subjectId, setSubjectId] = useState<string>("");
+  const [gradeLevelId, setGradeLevelId] = useState<string>("");
+
+  const { data: subjects } = useSubjects();
+  const { data: gradeLevels } = useGradeLevels();
 
   const createMutation = useMutation({
     mutationFn: async () => {
+      const result = courseSchema.safeParse({ title, description: description || undefined });
+      if (!result.success) throw new Error(result.error.errors[0].message);
       const { data, error } = await supabase
         .from("courses")
-        .insert({ title, description, teacher_id: user!.id })
+        .insert({
+          title: result.data.title,
+          description: result.data.description ?? "",
+          teacher_id: user!.id,
+          subject_id: subjectId || null,
+          grade_level_id: gradeLevelId || null,
+        })
         .select()
         .single();
       if (error) throw error;
@@ -34,7 +51,7 @@ export default function CreateCourse() {
       toast.success("Course created!");
       navigate(`/teacher/courses/${data.id}`);
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   if (roleLoading) {
@@ -80,6 +97,34 @@ export default function CreateCourse() {
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
             />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Subject</Label>
+              <Select value={subjectId} onValueChange={setSubjectId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select subject" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjects?.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Grade Level</Label>
+              <Select value={gradeLevelId} onValueChange={setGradeLevelId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select grade" />
+                </SelectTrigger>
+                <SelectContent>
+                  {gradeLevels?.map((g) => (
+                    <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <Button
             onClick={() => createMutation.mutate()}

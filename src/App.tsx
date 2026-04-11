@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { RoleGuard } from "@/components/RoleGuard";
 import { AppLayout } from "@/components/AppLayout";
 
 // Auth pages (small, keep eager)
@@ -38,6 +39,8 @@ const TeacherStudents = lazy(() => import("./pages/teacher/TeacherStudents"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminCourses = lazy(() => import("./pages/admin/AdminCourses"));
+const AdminSubjects = lazy(() => import("./pages/admin/AdminSubjects"));
+const AdminGradeLevels = lazy(() => import("./pages/admin/AdminGradeLevels"));
 
 const queryClient = new QueryClient();
 
@@ -92,31 +95,33 @@ const App = () => (
                 <Route path="/profile" element={<Profile />} />
 
                 {/* Teacher routes */}
-                <Route path="/teacher" element={<TeacherDashboard />} />
-                <Route path="/teacher/courses" element={<TeacherCourses />} />
-                <Route path="/teacher/courses/new" element={<CreateCourse />} />
+                <Route path="/teacher" element={<RoleGuard role="teacher"><TeacherDashboard /></RoleGuard>} />
+                <Route path="/teacher/courses" element={<RoleGuard role="teacher"><TeacherCourses /></RoleGuard>} />
+                <Route path="/teacher/courses/new" element={<RoleGuard role="teacher"><CreateCourse /></RoleGuard>} />
                 <Route
                   path="/teacher/courses/:courseId"
-                  element={<TeacherCourseDetail />}
+                  element={<RoleGuard role="teacher"><TeacherCourseDetail /></RoleGuard>}
                 />
                 <Route
                   path="/teacher/courses/:courseId/assignments/:assignmentId/submissions"
-                  element={<AssignmentSubmissions />}
+                  element={<RoleGuard role="teacher"><AssignmentSubmissions /></RoleGuard>}
                 />
                 <Route
                   path="/teacher/submissions"
-                  element={<TeacherSubmissions />}
+                  element={<RoleGuard role="teacher"><TeacherSubmissions /></RoleGuard>}
                 />
                 <Route
                   path="/teacher/live-classes"
-                  element={<TeacherLiveClasses />}
+                  element={<RoleGuard role="teacher"><TeacherLiveClasses /></RoleGuard>}
                 />
-                <Route path="/teacher/students" element={<TeacherStudents />} />
+                <Route path="/teacher/students" element={<RoleGuard role="teacher"><TeacherStudents /></RoleGuard>} />
 
                 {/* Admin routes */}
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/admin/users" element={<AdminUsers />} />
-                <Route path="/admin/courses" element={<AdminCourses />} />
+                <Route path="/admin" element={<RoleGuard role="admin"><AdminDashboard /></RoleGuard>} />
+                <Route path="/admin/users" element={<RoleGuard role="admin"><AdminUsers /></RoleGuard>} />
+                <Route path="/admin/courses" element={<RoleGuard role="admin"><AdminCourses /></RoleGuard>} />
+                <Route path="/admin/subjects" element={<RoleGuard role="admin"><AdminSubjects /></RoleGuard>} />
+                <Route path="/admin/grade-levels" element={<RoleGuard role="admin"><AdminGradeLevels /></RoleGuard>} />
               </Route>
 
               <Route path="/" element={<Navigate to="/dashboard" replace />} />

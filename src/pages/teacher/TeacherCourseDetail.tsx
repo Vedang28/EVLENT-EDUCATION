@@ -13,11 +13,22 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ArrowLeft, Plus, Loader2, Trash2, GripVertical, Video, FileText,
   Users, Clock, Edit2
 } from "lucide-react";
 import { format } from "date-fns";
+import { moduleSchema, lessonSchema, assignmentSchema, liveClassSchema } from "@/lib/validations";
+import { useSubjects } from "@/hooks/useSubjects";
+import { useGradeLevels } from "@/hooks/useGradeLevels";
+import type { Database } from "@/integrations/supabase/types";
+
+type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
+type CourseWithJoins = CourseRow & {
+  subjects: { id: string; name: string } | null;
+  grade_levels: { id: string; name: string } | null;
+};
 
 export default function TeacherCourseDetail() {
   const { courseId } = useParams();
@@ -25,13 +36,32 @@ export default function TeacherCourseDetail() {
   const { isTeacher, isLoading: roleLoading } = useUserRole();
   const queryClient = useQueryClient();
 
+  const { data: subjects } = useSubjects();
+  const { data: gradeLevels } = useGradeLevels();
+
   // Course
   const { data: course } = useQuery({
     queryKey: ["course", courseId],
     queryFn: async () => {
-      const { data } = await supabase.from("courses").select("*").eq("id", courseId!).single();
-      return data;
+      const { data } = await supabase
+        .from("courses")
+        .select("*, subjects(id, name), grade_levels(id, name)")
+        .eq("id", courseId!)
+        .single();
+      return data as CourseWithJoins | null;
     },
+  });
+
+  const updateCourseMeta = useMutation({
+    mutationFn: async (fields: { subject_id?: string | null; grade_level_id?: string | null }) => {
+      const { error } = await supabase.from("courses").update(fields).eq("id", courseId!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["course", courseId] });
+      toast.success("Course updated!");
+    },
+    onError: (err: Error) => toast.error(err.message),
   });
 
   // Modules with lessons
@@ -98,6 +128,42 @@ export default function TeacherCourseDetail() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{course.title}</h1>
         <p className="text-muted-foreground mt-1">{course.description}</p>
+        <div className="flex flex-wrap items-center gap-2 mt-3">
+          {course.subjects && (
+            <Badge variant="secondary">{course.subjects.name}</Badge>
+          )}
+          {course.grade_levels && (
+            <Badge variant="outline">{course.grade_levels.name}</Badge>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-3 mt-3">
+          <Select
+            value={course.subject_id ?? ""}
+            onValueChange={(v) => updateCourseMeta.mutate({ subject_id: v || null })}
+          >
+            <SelectTrigger className="w-[180px] h-8 text-xs">
+              <SelectValue placeholder="Set subject" />
+            </SelectTrigger>
+            <SelectContent>
+              {subjects?.map((s) => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select
+            value={course.grade_level_id ?? ""}
+            onValueChange={(v) => updateCourseMeta.mutate({ grade_level_id: v || null })}
+          >
+            <SelectTrigger className="w-[180px] h-8 text-xs">
+              <SelectValue placeholder="Set grade level" />
+            </SelectTrigger>
+            <SelectContent>
+              {gradeLevels?.map((g) => (
+                <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <Tabs defaultValue="modules">
@@ -220,7 +286,9 @@ function AddModuleForm({ courseId, onSuccess }: { courseId: string; onSuccess: (
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("modules").insert({ course_id: courseId, title });
+      const result = moduleSchema.safeParse({ title });
+      if (!result.success) throw new Error(result.error.errors[0].message);
+      const { error } = await supabase.from("modules").insert({ course_id: courseId, title: result.data.title });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -229,7 +297,7 @@ function AddModuleForm({ courseId, onSuccess }: { courseId: string; onSuccess: (
       onSuccess();
       toast.success("Module added!");
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   return (
@@ -264,11 +332,17 @@ function ModuleCard({ module, courseId, onRefresh }: { module: any; courseId: st
 
   const addLessonMutation = useMutation({
     mutationFn: async () => {
+      const result = lessonSchema.safeParse({
+        title: lessonTitle,
+        content: lessonContent || undefined,
+        video_url: lessonVideo || undefined,
+      });
+      if (!result.success) throw new Error(result.error.errors[0].message);
       const { error } = await supabase.from("lessons").insert({
         module_id: module.id,
-        title: lessonTitle,
-        content: lessonContent || null,
-        video_url: lessonVideo || null,
+        title: result.data.title,
+        content: result.data.content ?? null,
+        video_url: result.data.video_url ?? null,
       });
       if (error) throw error;
     },
@@ -280,7 +354,7 @@ function ModuleCard({ module, courseId, onRefresh }: { module: any; courseId: st
       onRefresh();
       toast.success("Lesson added!");
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const deleteModuleMutation = useMutation({
@@ -292,7 +366,7 @@ function ModuleCard({ module, courseId, onRefresh }: { module: any; courseId: st
       onRefresh();
       toast.success("Module deleted");
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const sortedLessons = module.lessons?.sort((a: any, b: any) => a.position - b.position) ?? [];
@@ -363,12 +437,19 @@ function AddAssignmentForm({ courseId, onSuccess }: { courseId: string; onSucces
 
   const mutation = useMutation({
     mutationFn: async () => {
+      const result = assignmentSchema.safeParse({
+        title,
+        description: description || undefined,
+        deadline: deadline || undefined,
+        max_score: parseInt(maxScore) || 100,
+      });
+      if (!result.success) throw new Error(result.error.errors[0].message);
       const { error } = await supabase.from("assignments").insert({
         course_id: courseId,
-        title,
-        description: description || null,
-        deadline: deadline ? new Date(deadline).toISOString() : null,
-        max_score: parseInt(maxScore) || 100,
+        title: result.data.title,
+        description: result.data.description ?? null,
+        deadline: result.data.deadline ? new Date(result.data.deadline).toISOString() : null,
+        max_score: result.data.max_score,
       });
       if (error) throw error;
     },
@@ -381,7 +462,7 @@ function AddAssignmentForm({ courseId, onSuccess }: { courseId: string; onSucces
       onSuccess();
       toast.success("Assignment created!");
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   return (
@@ -430,12 +511,18 @@ function AddLiveClassForm({ courseId, teacherId, onSuccess }: { courseId: string
 
   const mutation = useMutation({
     mutationFn: async () => {
+      const result = liveClassSchema.safeParse({
+        title,
+        meeting_url: meetingUrl || undefined,
+        start_time: startTime,
+      });
+      if (!result.success) throw new Error(result.error.errors[0].message);
       const { error } = await supabase.from("live_classes").insert({
         course_id: courseId,
         teacher_id: teacherId,
-        title,
-        meeting_url: meetingUrl || null,
-        start_time: new Date(startTime).toISOString(),
+        title: result.data.title,
+        meeting_url: result.data.meeting_url || null,
+        start_time: new Date(result.data.start_time).toISOString(),
       });
       if (error) throw error;
     },
@@ -447,7 +534,7 @@ function AddLiveClassForm({ courseId, teacherId, onSuccess }: { courseId: string
       onSuccess();
       toast.success("Live class scheduled!");
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   return (
