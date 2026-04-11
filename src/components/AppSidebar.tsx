@@ -1,6 +1,19 @@
 import {
-  LayoutDashboard, BookOpen, ClipboardCheck, Bell, User, LogOut, Video,
-  PlusCircle, Users, FileEdit, GraduationCap, ShieldCheck, BarChart3
+  LayoutDashboard,
+  BookOpen,
+  ClipboardCheck,
+  Bell,
+  User,
+  LogOut,
+  Video,
+  PlusCircle,
+  Users,
+  FileEdit,
+  GraduationCap,
+  ShieldCheck,
+  BarChart3,
+  Calendar,
+  Clock,
 } from "lucide-react";
 import logo from "@/assets/logo.jpeg";
 import { useLocation } from "react-router-dom";
@@ -26,6 +39,8 @@ const studentNav = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "My Courses", url: "/courses", icon: BookOpen },
   { title: "Grades", url: "/grades", icon: ClipboardCheck },
+  { title: "Calendar", url: "/calendar", icon: Calendar },
+  { title: "Timetable", url: "/timetable", icon: Clock },
   { title: "Live Classes", url: "/live-classes", icon: Video },
   { title: "Notifications", url: "/notifications", icon: Bell },
   { title: "Profile", url: "/profile", icon: User },
@@ -36,6 +51,8 @@ const teacherNav = [
   { title: "My Courses", url: "/teacher/courses", icon: BookOpen },
   { title: "My Students", url: "/teacher/students", icon: Users },
   { title: "Create Course", url: "/teacher/courses/new", icon: PlusCircle },
+  { title: "Calendar", url: "/calendar", icon: Calendar },
+  { title: "Timetable", url: "/timetable", icon: Clock },
   { title: "Submissions", url: "/teacher/submissions", icon: FileEdit },
   { title: "Live Classes", url: "/teacher/live-classes", icon: Video },
   { title: "Notifications", url: "/notifications", icon: Bell },
@@ -54,17 +71,27 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { signOut } = useAuth();
-  const { isTeacher, isAdmin, isLoading } = useUserRole();
+  const { isTeacher, isAdmin } = useUserRole();
   const location = useLocation();
 
   const currentPortal = location.pathname.startsWith("/admin")
     ? "admin"
     : location.pathname.startsWith("/teacher")
-    ? "teacher"
-    : "student";
+      ? "teacher"
+      : "student";
 
-  const navItems = currentPortal === "admin" ? adminNav : currentPortal === "teacher" ? teacherNav : studentNav;
-  const roleLabel = currentPortal === "admin" ? "Admin" : currentPortal === "teacher" ? "Teacher" : null;
+  const navItems =
+    currentPortal === "admin"
+      ? adminNav
+      : currentPortal === "teacher"
+        ? teacherNav
+        : studentNav;
+  const roleLabel =
+    currentPortal === "admin"
+      ? "Admin"
+      : currentPortal === "teacher"
+        ? "Teacher"
+        : null;
 
   return (
     <Sidebar collapsible="icon">
@@ -84,7 +111,15 @@ export function AppSidebar() {
             <SidebarMenu>
               {!collapsed && roleLabel && (
                 <div className="px-3 pb-2">
-                  <Badge className={isAdmin ? "bg-destructive text-destructive-foreground text-xs" : "bg-accent text-accent-foreground text-xs"}>{roleLabel}</Badge>
+                  <Badge
+                    className={
+                      isAdmin
+                        ? "bg-destructive text-destructive-foreground text-xs"
+                        : "bg-accent text-accent-foreground text-xs"
+                    }
+                  >
+                    {roleLabel}
+                  </Badge>
                 </div>
               )}
               {navItems.map((item) => (
@@ -110,13 +145,21 @@ export function AppSidebar() {
         {(isTeacher || isAdmin) && (
           <SidebarGroup>
             <SidebarGroupLabel className="px-4">
-              {!collapsed && <span className="text-xs text-muted-foreground">Switch View</span>}
+              {!collapsed && (
+                <span className="text-xs text-muted-foreground">
+                  Switch View
+                </span>
+              )}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <NavLink to="/dashboard" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
+                    <NavLink
+                      to="/dashboard"
+                      className="hover:bg-sidebar-accent/50"
+                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                    >
                       <GraduationCap className="mr-2 h-4 w-4" />
                       {!collapsed && <span>Student Portal</span>}
                     </NavLink>
@@ -125,7 +168,11 @@ export function AppSidebar() {
                 {isTeacher && (
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <NavLink to="/teacher" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
+                      <NavLink
+                        to="/teacher"
+                        className="hover:bg-sidebar-accent/50"
+                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      >
                         <ShieldCheck className="mr-2 h-4 w-4" />
                         {!collapsed && <span>Teacher Portal</span>}
                       </NavLink>
@@ -135,7 +182,11 @@ export function AppSidebar() {
                 {isAdmin && (
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
-                      <NavLink to="/admin" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium">
+                      <NavLink
+                        to="/admin"
+                        className="hover:bg-sidebar-accent/50"
+                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      >
                         <BarChart3 className="mr-2 h-4 w-4" />
                         {!collapsed && <span>Admin Portal</span>}
                       </NavLink>
