@@ -7,12 +7,18 @@ import { Input } from "@/components/ui/input";
 import { BookOpen, Search, Plus, Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Courses() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const { data: allCourses, isLoading } = useQuery({
     queryKey: ["all-courses", "approved"],
@@ -42,10 +48,10 @@ export default function Courses() {
       queryClient.invalidateQueries({ queryKey: ["enrollments"] });
       toast.success("Enrolled successfully!");
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message),
   });
 
-  const filtered = allCourses?.filter((c) => c.title.toLowerCase().includes(search.toLowerCase())) ?? [];
+  const filtered = allCourses?.filter((c) => c.title.toLowerCase().includes(debouncedSearch.toLowerCase())) ?? [];
 
   return (
     <div className="space-y-6 max-w-6xl">

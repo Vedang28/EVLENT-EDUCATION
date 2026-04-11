@@ -3,6 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { startOfMonth, endOfMonth, parseISO } from "date-fns";
+import type { Database } from "@/integrations/supabase/types";
+
+type AssignmentRow = Database["public"]["Tables"]["assignments"]["Row"];
+type LiveClassRow = Database["public"]["Tables"]["live_classes"]["Row"];
+type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
+
+type AssignmentWithCourse = AssignmentRow & { courses: Pick<CourseRow, "title"> | null };
+type LiveClassWithCourse = LiveClassRow & { courses: Pick<CourseRow, "title"> | null };
 
 export interface CalendarEvent {
   id: string;
@@ -43,6 +51,7 @@ export function useCalendarEvents(selectedMonth: Date) {
       }
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000,
   });
 
   // Step 2: Fetch assignments for the month
@@ -78,7 +87,7 @@ export function useCalendarEvents(selectedMonth: Date) {
   });
 
   // Normalize into unified CalendarEvent[]
-  const assignmentEvents: CalendarEvent[] = (assignments ?? []).map((a: any) => ({
+  const assignmentEvents: CalendarEvent[] = (assignments ?? []).map((a: AssignmentWithCourse) => ({
     id: a.id,
     title: a.title,
     date: parseISO(a.deadline),
@@ -88,7 +97,7 @@ export function useCalendarEvents(selectedMonth: Date) {
     assignmentId: a.id,
   }));
 
-  const liveClassEvents: CalendarEvent[] = (liveClasses ?? []).map((lc: any) => ({
+  const liveClassEvents: CalendarEvent[] = (liveClasses ?? []).map((lc: LiveClassWithCourse) => ({
     id: lc.id,
     title: lc.title,
     date: parseISO(lc.start_time),

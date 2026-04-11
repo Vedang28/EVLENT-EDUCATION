@@ -3,6 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { startOfWeek, endOfWeek, parseISO, getDay, getHours } from "date-fns";
+import type { Database } from "@/integrations/supabase/types";
+
+type LiveClassRow = Database["public"]["Tables"]["live_classes"]["Row"];
+type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
+
+type LiveClassWithCourse = LiveClassRow & { courses: Pick<CourseRow, "id" | "title"> | null };
 
 export interface TimetableClass {
   id: string;
@@ -48,6 +54,7 @@ export function useTimetableClasses(weekStart: Date) {
       }
     },
     enabled: !!user,
+    staleTime: 5 * 60 * 1000,
   });
 
   // Step 2: Fetch live classes for the week
@@ -68,7 +75,7 @@ export function useTimetableClasses(weekStart: Date) {
   });
 
   // Normalize into TimetableClass[]
-  const classes: TimetableClass[] = (rawClasses ?? []).map((lc: any) => {
+  const classes: TimetableClass[] = (rawClasses ?? []).map((lc: LiveClassWithCourse) => {
     const start = parseISO(lc.start_time);
     // Convert JS getDay (0=Sun) to Mon-start (0=Mon ... 5=Sat, 6=Sun)
     const jsDay = getDay(start);
