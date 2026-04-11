@@ -19,6 +19,8 @@ import Grades from "./pages/Grades";
 import LiveClasses from "./pages/LiveClasses";
 import Notifications from "./pages/Notifications";
 import Profile from "./pages/Profile";
+import CalendarPage from "./pages/Calendar";
+import TimetablePage from "./pages/Timetable";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import TeacherCourses from "./pages/teacher/TeacherCourses";
 import CreateCourse from "./pages/teacher/CreateCourse";
@@ -49,14 +51,28 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Protected routes */}
-            <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+            <Route
+              element={
+                <ProtectedRoute>
+                  <AppLayout />
+                </ProtectedRoute>
+              }
+            >
               {/* Student routes */}
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/courses" element={<Courses />} />
               <Route path="/courses/:courseId" element={<CourseDetail />} />
-              <Route path="/courses/:courseId/lessons/:lessonId" element={<LessonPage />} />
-              <Route path="/courses/:courseId/assignments/:assignmentId" element={<AssignmentPage />} />
+              <Route
+                path="/courses/:courseId/lessons/:lessonId"
+                element={<LessonPage />}
+              />
+              <Route
+                path="/courses/:courseId/assignments/:assignmentId"
+                element={<AssignmentPage />}
+              />
               <Route path="/grades" element={<Grades />} />
+              <Route path="/calendar" element={<CalendarPage />} />
+              <Route path="/timetable" element={<TimetablePage />} />
               <Route path="/live-classes" element={<LiveClasses />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/profile" element={<Profile />} />
@@ -65,10 +81,22 @@ const App = () => (
               <Route path="/teacher" element={<TeacherDashboard />} />
               <Route path="/teacher/courses" element={<TeacherCourses />} />
               <Route path="/teacher/courses/new" element={<CreateCourse />} />
-              <Route path="/teacher/courses/:courseId" element={<TeacherCourseDetail />} />
-              <Route path="/teacher/courses/:courseId/assignments/:assignmentId/submissions" element={<AssignmentSubmissions />} />
-              <Route path="/teacher/submissions" element={<TeacherSubmissions />} />
-              <Route path="/teacher/live-classes" element={<TeacherLiveClasses />} />
+              <Route
+                path="/teacher/courses/:courseId"
+                element={<TeacherCourseDetail />}
+              />
+              <Route
+                path="/teacher/courses/:courseId/assignments/:assignmentId/submissions"
+                element={<AssignmentSubmissions />}
+              />
+              <Route
+                path="/teacher/submissions"
+                element={<TeacherSubmissions />}
+              />
+              <Route
+                path="/teacher/live-classes"
+                element={<TeacherLiveClasses />}
+              />
               <Route path="/teacher/students" element={<TeacherStudents />} />
 
               {/* Admin routes */}
