@@ -33,7 +33,7 @@ import {
   addDays,
 } from "date-fns";
 
-const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8:00 – 20:00
 
 const CLASS_COLORS = [
@@ -134,7 +134,7 @@ export default function TimetablePage() {
           </Button>
         </div>
         <span className="text-sm font-medium">
-          {format(monday, "MMM d")} – {format(addDays(monday, 5), "MMM d, yyyy")}
+          {format(monday, "MMM d")} – {format(addDays(monday, 6), "MMM d, yyyy")}
         </span>
         <Select value={courseFilter} onValueChange={setCourseFilter}>
           <SelectTrigger className="w-[200px]">
