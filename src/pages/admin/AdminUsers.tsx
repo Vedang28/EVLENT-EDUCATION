@@ -11,8 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { Search, ShieldCheck, UserPlus, Trash2, Link2, Unlink } from "lucide-react";
+import { Search, ShieldCheck, UserPlus, Trash2, Link2, Unlink, GraduationCap } from "lucide-react";
 import type { AppRole } from "@/hooks/useUserRole";
+import { useGradeLevels } from "@/hooks/useGradeLevels";
 
 export default function AdminUsers() {
   const qc = useQueryClient();
@@ -29,6 +30,8 @@ export default function AdminUsers() {
   // Assign student state
   const [selectedTeacher, setSelectedTeacher] = useState<string>("");
   const [selectedStudent, setSelectedStudent] = useState<string>("");
+
+  const { data: gradeLevels } = useGradeLevels();
 
   const { data: profiles, isLoading: loadingProfiles } = useQuery({
     queryKey: ["admin-profiles"],
@@ -121,6 +124,21 @@ export default function AdminUsers() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  const updateGradeLevelMutation = useMutation({
+    mutationFn: async ({ userId, gradeLevelId }: { userId: string; gradeLevelId: string | null }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ grade_level_id: gradeLevelId })
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-profiles"] });
+      toast({ title: "Grade level updated" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
       const { data, error } = await supabase.functions.invoke("admin-create-user", {
@@ -177,6 +195,11 @@ export default function AdminUsers() {
       case "teacher": return "default" as const;
       default: return "secondary" as const;
     }
+  };
+
+  const getGradeLevelName = (gradeLevelId: string | null) => {
+    if (!gradeLevelId) return null;
+    return gradeLevels?.find((g) => g.id === gradeLevelId)?.name ?? null;
   };
 
   // Students not yet assigned to the selected teacher
@@ -381,6 +404,7 @@ export default function AdminUsers() {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Roles</TableHead>
+                    <TableHead>Grade Level</TableHead>
                     <TableHead>Assigned To</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -409,6 +433,31 @@ export default function AdminUsers() {
                               </Badge>
                             ))}
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {roles.includes("student") ? (
+                            <Select
+                              value={p.grade_level_id ?? "none"}
+                              onValueChange={(v) =>
+                                updateGradeLevelMutation.mutate({
+                                  userId: p.user_id,
+                                  gradeLevelId: v === "none" ? null : v,
+                                })
+                              }
+                            >
+                              <SelectTrigger className="w-[130px] h-8 text-xs">
+                                <SelectValue placeholder="Set grade" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">No grade</SelectItem>
+                                {gradeLevels?.map((g) => (
+                                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {assignedTeacher ? (
@@ -457,7 +506,7 @@ export default function AdminUsers() {
                   })}
                   {filteredProfiles.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">No users found</TableCell>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">No users found</TableCell>
                     </TableRow>
                   )}
                 </TableBody>

@@ -41,6 +41,8 @@ const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminCourses = lazy(() => import("./pages/admin/AdminCourses"));
 const AdminSubjects = lazy(() => import("./pages/admin/AdminSubjects"));
 const AdminGradeLevels = lazy(() => import("./pages/admin/AdminGradeLevels"));
+const QuizPage = lazy(() => import("./pages/QuizPage"));
+const QuizResults = lazy(() => import("./pages/QuizResults"));
 
 const queryClient = new QueryClient();
 
@@ -86,6 +88,14 @@ const App = () => (
                 <Route
                   path="/courses/:courseId/assignments/:assignmentId"
                   element={<AssignmentPage />}
+                />
+                <Route
+                  path="/courses/:courseId/quizzes/:quizId"
+                  element={<QuizPage />}
+                />
+                <Route
+                  path="/courses/:courseId/quizzes/:quizId/results/:attemptId"
+                  element={<QuizResults />}
                 />
                 <Route path="/grades" element={<Grades />} />
                 <Route path="/calendar" element={<CalendarPage />} />

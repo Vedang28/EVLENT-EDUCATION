@@ -59,7 +59,7 @@ export default function AssignmentSubmissions() {
       queryClient.invalidateQueries({ queryKey: ["assignment-submissions", assignmentId] });
       toast.success("Graded!");
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   if (roleLoading) {

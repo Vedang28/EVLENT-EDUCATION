@@ -86,7 +86,7 @@ export default function TeacherSubmissions() {
       queryClient.invalidateQueries({ queryKey: ["teacher-all-submissions"] });
       toast.success("Submission graded!");
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   if (roleLoading) {

@@ -20,7 +20,7 @@ export default function ForgotPassword() {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     if (error) {
-      toast.error(error.message);
+      toast.error("If an account exists with this email, a reset link has been sent.");
     } else {
       toast.success("Password reset email sent! Check your inbox.");
     }

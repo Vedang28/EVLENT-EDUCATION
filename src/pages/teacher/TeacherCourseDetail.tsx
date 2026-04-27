@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -22,6 +23,10 @@ import { format } from "date-fns";
 import { moduleSchema, lessonSchema, assignmentSchema, liveClassSchema } from "@/lib/validations";
 import { useSubjects } from "@/hooks/useSubjects";
 import { useGradeLevels } from "@/hooks/useGradeLevels";
+import RichTextEditor from "@/components/RichTextEditor";
+import ImageUpload from "@/components/ImageUpload";
+import QuizBuilder from "@/components/QuizBuilder";
+import { useQuizzes } from "@/hooks/useQuizzes";
 import type { Database } from "@/integrations/supabase/types";
 
 type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
@@ -53,7 +58,7 @@ export default function TeacherCourseDetail() {
   });
 
   const updateCourseMeta = useMutation({
-    mutationFn: async (fields: { subject_id?: string | null; grade_level_id?: string | null }) => {
+    mutationFn: async (fields: { subject_id?: string | null; grade_level_id?: string | null; thumbnail_url?: string | null }) => {
       const { error } = await supabase.from("courses").update(fields).eq("id", courseId!);
       if (error) throw error;
     },
@@ -97,6 +102,9 @@ export default function TeacherCourseDetail() {
       return data ?? [];
     },
   });
+
+  // Quizzes
+  const { data: quizzes } = useQuizzes(courseId);
 
   // Live classes
   const { data: liveClasses } = useQuery({
@@ -164,12 +172,22 @@ export default function TeacherCourseDetail() {
             </SelectContent>
           </Select>
         </div>
+        <div className="mt-4 max-w-sm">
+          <Label className="text-xs text-muted-foreground mb-2 block">Course Thumbnail</Label>
+          <ImageUpload
+            value={course.thumbnail_url}
+            onChange={(url) => updateCourseMeta.mutate({ thumbnail_url: url })}
+            bucket="course-thumbnails"
+            folder={user!.id}
+          />
+        </div>
       </div>
 
       <Tabs defaultValue="modules">
         <TabsList>
           <TabsTrigger value="modules">Modules & Lessons</TabsTrigger>
           <TabsTrigger value="assignments">Assignments</TabsTrigger>
+          <TabsTrigger value="quizzes">Quizzes ({quizzes?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="students">Students ({enrollments?.length ?? 0})</TabsTrigger>
           <TabsTrigger value="live">Live Classes</TabsTrigger>
         </TabsList>
@@ -219,6 +237,19 @@ export default function TeacherCourseDetail() {
                   </Link>
                 </CardContent>
               </Card>
+            ))
+          )}
+        </TabsContent>
+
+        {/* Quizzes Tab */}
+        <TabsContent value="quizzes" className="space-y-4 mt-4">
+          <AddQuizForm courseId={courseId!} onSuccess={() => queryClient.invalidateQueries({ queryKey: ["quizzes", courseId] })} />
+
+          {!quizzes?.length ? (
+            <p className="text-muted-foreground py-8 text-center">No quizzes yet. Create one above.</p>
+          ) : (
+            quizzes.map((quiz) => (
+              <QuizBuilder key={quiz.id} quiz={quiz} courseId={courseId!} />
             ))
           )}
         </TabsContent>
@@ -403,8 +434,8 @@ function ModuleCard({ module, courseId, onRefresh }: { module: any; courseId: st
               <Input placeholder="Lesson title" value={lessonTitle} onChange={(e) => setLessonTitle(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Content (optional, HTML supported)</Label>
-              <Textarea placeholder="Lesson content..." value={lessonContent} onChange={(e) => setLessonContent(e.target.value)} rows={3} />
+              <Label>Content (optional)</Label>
+              <RichTextEditor content={lessonContent} onChange={setLessonContent} placeholder="Lesson content..." />
             </div>
             <div className="space-y-2">
               <Label>Video URL (optional, embed URL)</Label>
@@ -562,6 +593,89 @@ function AddLiveClassForm({ courseId, teacherId, onSuccess }: { courseId: string
           <Button onClick={() => mutation.mutate()} disabled={!title.trim() || !startTime || mutation.isPending} className="w-full">
             {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Schedule Class
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AddQuizForm({ courseId, onSuccess }: { courseId: string; onSuccess: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [timeLimit, setTimeLimit] = useState("");
+  const [attemptLimit, setAttemptLimit] = useState("1");
+  const [randomize, setRandomize] = useState(false);
+  const [showAnswers, setShowAnswers] = useState(true);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (!title.trim()) throw new Error("Title is required");
+      const { error } = await supabase.from("quizzes").insert({
+        course_id: courseId,
+        title: title.trim(),
+        description: description.trim() || null,
+        time_limit: timeLimit ? parseInt(timeLimit) : null,
+        attempt_limit: parseInt(attemptLimit) || 1,
+        randomize,
+        show_answers: showAnswers,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setTitle("");
+      setDescription("");
+      setTimeLimit("");
+      setAttemptLimit("1");
+      setRandomize(false);
+      setShowAnswers(true);
+      setOpen(false);
+      onSuccess();
+      toast.success("Quiz created!");
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline"><Plus className="mr-2 h-4 w-4" /> Create Quiz</Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>New Quiz</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 pt-2">
+          <div className="space-y-2">
+            <Label>Title</Label>
+            <Input placeholder="e.g., Chapter 1 Assessment" value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>Description (optional)</Label>
+            <Textarea placeholder="Instructions for students..." value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Time Limit (minutes, blank = none)</Label>
+              <Input type="number" min={1} max={300} placeholder="No limit" value={timeLimit} onChange={(e) => setTimeLimit(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Max Attempts</Label>
+              <Input type="number" min={1} max={100} value={attemptLimit} onChange={(e) => setAttemptLimit(e.target.value)} />
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <Label>Randomize question order</Label>
+            <Switch checked={randomize} onCheckedChange={setRandomize} />
+          </div>
+          <div className="flex items-center justify-between">
+            <Label>Show correct answers after submission</Label>
+            <Switch checked={showAnswers} onCheckedChange={setShowAnswers} />
+          </div>
+          <Button onClick={() => mutation.mutate()} disabled={!title.trim() || mutation.isPending} className="w-full">
+            {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Create Quiz
           </Button>
         </div>
       </DialogContent>

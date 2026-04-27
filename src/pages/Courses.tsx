@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useState, useEffect, useMemo } from "react";
 import { useSubjects } from "@/hooks/useSubjects";
-import { useGradeLevels } from "@/hooks/useGradeLevels";
+import { useUserRole } from "@/hooks/useUserRole";
 import type { Database } from "@/integrations/supabase/types";
 
 type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
@@ -26,10 +26,22 @@ export default function Courses() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
-  const [gradeFilter, setGradeFilter] = useState<string>("all");
 
   const { data: subjects } = useSubjects();
-  const { data: gradeLevels } = useGradeLevels();
+  const { isStudent } = useUserRole();
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("*, grade_levels(name)")
+        .eq("user_id", user!.id)
+        .single();
+      return data;
+    },
+    enabled: !!user,
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300);
@@ -71,14 +83,16 @@ export default function Courses() {
     onError: (err: Error) => toast.error(err.message),
   });
 
+  const studentGradeId = isStudent ? profile?.grade_level_id : null;
+
   const filtered = useMemo(() => {
     return (allCourses ?? []).filter((c) => {
       const matchesSearch = c.title.toLowerCase().includes(debouncedSearch.toLowerCase());
       const matchesSubject = subjectFilter === "all" || c.subject_id === subjectFilter;
-      const matchesGrade = gradeFilter === "all" || c.grade_level_id === gradeFilter;
+      const matchesGrade = !studentGradeId || c.grade_level_id === studentGradeId;
       return matchesSearch && matchesSubject && matchesGrade;
     });
-  }, [allCourses, debouncedSearch, subjectFilter, gradeFilter]);
+  }, [allCourses, debouncedSearch, subjectFilter, studentGradeId]);
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -94,7 +108,7 @@ export default function Courses() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Select value={subjectFilter} onValueChange={setSubjectFilter}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="All Subjects" />
@@ -107,23 +121,17 @@ export default function Courses() {
           </SelectContent>
         </Select>
 
-        <Select value={gradeFilter} onValueChange={setGradeFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="All Grades" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Grades</SelectItem>
-            {gradeLevels?.map((g) => (
-              <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {studentGradeId && (profile as any)?.grade_levels?.name && (
+          <Badge variant="outline" className="h-9 px-3 text-sm">
+            {(profile as any).grade_levels.name}
+          </Badge>
+        )}
 
-        {(subjectFilter !== "all" || gradeFilter !== "all") && (
+        {subjectFilter !== "all" && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => { setSubjectFilter("all"); setGradeFilter("all"); }}
+            onClick={() => setSubjectFilter("all")}
           >
             Clear filters
           </Button>
@@ -147,9 +155,13 @@ export default function Courses() {
             const isEnrolled = enrolledIds.has(course.id);
             return (
               <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="h-32 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                  <BookOpen className="h-12 w-12 text-primary/40" />
-                </div>
+                {course.thumbnail_url ? (
+                  <img src={course.thumbnail_url} alt={course.title} className="h-32 w-full object-cover" />
+                ) : (
+                  <div className="h-32 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                    <BookOpen className="h-12 w-12 text-primary/40" />
+                  </div>
+                )}
                 <CardHeader className="pb-2">
                   <div className="flex flex-wrap gap-1.5 mb-1">
                     {course.subjects && (

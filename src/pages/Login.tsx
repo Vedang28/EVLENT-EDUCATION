@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import logo from "@/assets/logo.jpeg";
+import { loginSchema } from "@/lib/validations";
 export default function Login() {
   const { user } = useAuth();
   const [email, setEmail] = useState("");
@@ -19,10 +20,15 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    const result = loginSchema.safeParse({ email, password });
+    if (!result.success) {
+      toast.error(result.error.errors[0].message);
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      toast.error(error.message);
+      toast.error("Invalid email or password");
     }
     setLoading(false);
   };

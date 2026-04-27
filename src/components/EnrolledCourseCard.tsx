@@ -8,9 +8,10 @@ interface EnrolledCourseCardProps {
   courseId: string;
   title: string;
   description?: string;
+  thumbnailUrl?: string | null;
 }
 
-export function EnrolledCourseCard({ courseId, title, description }: EnrolledCourseCardProps) {
+export function EnrolledCourseCard({ courseId, title, description, thumbnailUrl }: EnrolledCourseCardProps) {
   const { user } = useAuth();
 
   const { data: progress } = useQuery({
@@ -51,9 +52,13 @@ export function EnrolledCourseCard({ courseId, title, description }: EnrolledCou
       to={`/courses/${courseId}`}
       className="flex items-center gap-3 rounded-lg border p-3 hover:bg-muted/50 transition-colors"
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-sm shrink-0">
-        {title?.[0] ?? "C"}
-      </div>
+      {thumbnailUrl ? (
+        <img src={thumbnailUrl} alt={title} className="h-10 w-10 rounded-lg object-cover shrink-0" />
+      ) : (
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary font-bold text-sm shrink-0">
+          {title?.[0] ?? "C"}
+        </div>
+      )}
       <div className="flex-1 min-w-0">
         <p className="font-medium truncate">{title}</p>
         <div className="flex items-center gap-2 mt-1">

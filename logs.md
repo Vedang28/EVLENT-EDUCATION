@@ -203,3 +203,192 @@
 - **The chunk size warning** in build output is pre-existing (the bundle is >500KB). This is common for SPAs with many routes — code splitting with `React.lazy()` could fix it but is out of scope for Phase 3.
 
 ---
+
+### Log 12 — Created `/phase4` Custom Command
+**Time:** 2026-04-11
+**Action:** Created `.claude/commands/phase4.md` — a slash command to trigger the EVLENT workflow for each Phase 4 feature.
+
+**What happened:**
+1. Created `.claude/commands/phase4.md` accepting arguments `F1`–`F6` or `all`
+2. Each argument maps to a `/workflow` call scoped to that feature with a reference to `PHASE4_PLAN.md`
+3. The `all` option chains F1–F6 sequentially with approval gates between features
+4. Includes build order notes, progress tracking format, and help text
+
+**Teaching notes:**
+- **Custom commands in `.claude/commands/`** become slash commands (e.g., `/phase4`) automatically. The `$ARGUMENTS` placeholder captures user input after the command name.
+- **Layered commands:** `/phase4 F1` triggers `/workflow`, which triggers specialized agents (planner, scaffold, test-writer, etc.). Each layer adds specificity — `/phase4` knows the feature, `/workflow` knows the pipeline, agents know their specialization.
+- **Recommended approach:** One feature per session to avoid context window limits and maintain clean git history.
+
+---
+
+### Log 13 — Session 1 Saved
+**Time:** 2026-04-11
+**Action:** Saved conversation history to `sessions/session1.md`.
+
+---
+
+## Session: 2026-04-11 (Session 2)
+
+### Log 14 — Phase 4 F1: Subject & Grade-Level Management
+**Time:** 2026-04-11
+**Action:** Built and shipped Phase 4 F1 — full subject and grade-level management system.
+
+**What happened:**
+1. **Migration** (`supabase/migrations/20260411300000_phase4_subjects_grades.sql`):
+   - Created `subjects` table (id, name, description, icon) with RLS (anyone SELECT, admin-only write)
+   - Created `grade_levels` table (id, name, position) with RLS (anyone SELECT, admin-only write)
+   - Created `teacher_subjects` junction table with RLS (anyone SELECT, teachers manage own)
+   - Added `subject_id` and `grade_level_id` FK columns to `courses`
+   - Added `grade_level_id` FK column to `profiles`
+   - Seeded 15 subjects and 13 grade levels (KG through Class 12)
+
+2. **Types** (`src/integrations/supabase/types.ts`):
+   - Added `subjects`, `grade_levels`, `teacher_subjects` table types
+   - Updated `courses` type with `subject_id`, `grade_level_id` + relationship metadata
+   - Updated `profiles` type with `grade_level_id` + relationship metadata
+
+3. **Hooks** (2 new files):
+   - `src/hooks/useSubjects.ts` — fetches all subjects ordered by name, 5min staleTime
+   - `src/hooks/useGradeLevels.ts` — fetches all grade levels ordered by position, 5min staleTime
+
+4. **UI Changes** (5 modified files):
+   - `Courses.tsx` — added subject/grade filter dropdowns with `useMemo` filtering + badges on cards
+   - `CreateCourse.tsx` — added subject/grade `Select` components in form
+   - `TeacherCourseDetail.tsx` — shows subject/grade badges + inline edit selects
+   - `Profile.tsx` — student grade-level select + teacher subject expertise multi-select with add/remove
+   - `AppSidebar.tsx` — added "Subjects" and "Grade Levels" to adminNav
+
+5. **Admin Pages** (2 new files):
+   - `AdminSubjects.tsx` — CRUD table with add/edit/delete dialogs, input validation
+   - `AdminGradeLevels.tsx` — CRUD table with position ordering, add/edit/delete dialogs
+
+6. **Routes** (`App.tsx`):
+   - Added lazy imports for `AdminSubjects` and `AdminGradeLevels`
+   - Added `/admin/subjects` and `/admin/grade-levels` routes with `RoleGuard`
+
+7. **Tests** (4 new test files, 16 new tests):
+   - `useSubjects.test.ts` — 3 tests (empty, fetch+order, error)
+   - `useGradeLevels.test.ts` — 3 tests (empty, fetch+order, error)
+   - `AdminSubjects.test.tsx` — 4 tests (title, table data, empty state, headers)
+   - `AdminGradeLevels.test.tsx` — 5 tests (title, table data, empty state, headers, positions)
+
+8. **QA**: type check (0 errors), build (success), 38/38 tests passing, security review (all PASS), audit (clean)
+
+**Commit:** `8844043` pushed to `main`
+
+**Teaching notes:**
+- **Typed Supabase joins:** When using `.select("*, subjects(id, name)")`, Supabase returns a joined object but the TypeScript client types it as the base row. We define `CourseWithJoins` that extends `CourseRow` with the joined shape and cast the result — this gives proper type safety without `as any`.
+- **`staleTime` on reference data:** Subjects and grade levels rarely change. Setting `staleTime: 5 * 60 * 1000` (5 minutes) means React Query won't refetch them on every component mount, reducing unnecessary API calls.
+- **Junction table pattern:** `teacher_subjects` uses a many-to-many junction table instead of a TEXT[] array on profiles. This allows RLS per-row, referential integrity via FK constraints, and efficient querying with JOINs.
+- **Delete button `disabled` guard:** Without `disabled={deleteMutation.isPending}`, rapid double-clicking can fire duplicate DELETE requests. The second one would fail (row already deleted) but causes an unnecessary error toast.
+
+---
+
+### Log 15 — Session 2 Saved
+**Time:** 2026-04-11
+**Action:** Saved conversation history to `sessions/session2.md`.
+
+---
+
+## Session: 2026-04-27 (Session 3+)
+
+### Log 16 — Phase 4 F2: Rich Content Editor (recap)
+**Time:** 2026-04-27
+**Action:** Previously built TipTap WYSIWYG editor, RichTextViewer, and integrated into lesson creation/viewing.
+
+---
+
+### Log 17 — Phase 4 F3: Course Thumbnails (recap)
+**Time:** 2026-04-27
+**Action:** Previously built ImageUpload component, Supabase Storage bucket, and thumbnail integration across course pages.
+
+---
+
+### Log 18 — Admin-Controlled Student Grade Levels (recap)
+**Time:** 2026-04-27
+**Action:** Moved student grade level assignment from student self-service to admin-only. Profile.tsx grade is now read-only; AdminUsers.tsx has the grade selector.
+
+---
+
+### Log 19 — Seed Data Created (recap)
+**Time:** 2026-04-27
+**Action:** Created `supabase/seed.sql` with 3 courses, 6 modules, 12 lessons, 4 assignments, 4 live classes, 3 enrollments. Created `.env.local` for local Supabase. Test accounts: student/teacher/admin @test.com (Test1234!).
+
+---
+
+### Log 20 — Phase 4 F4: Quiz Engine
+**Time:** 2026-04-27
+**Action:** Built the full quiz engine — database, types, hooks, teacher quiz builder, student quiz-taking UI, auto-grading, and results page.
+
+**What happened:**
+1. **Migration** (`supabase/migrations/20260411500000_phase4_quiz_engine.sql`):
+   - Created `quizzes` table (id, course_id, title, description, time_limit, attempt_limit, randomize, show_answers)
+   - Created `quiz_questions` table (id, quiz_id, type CHECK mcq/true_false/fill_blank, question_text, options JSONB, correct_answer JSONB, points, position)
+   - Created `quiz_attempts` table (id, quiz_id, student_id, answers JSONB, score, max_score, started_at, completed_at)
+   - RLS: teachers manage quizzes/questions for own courses; students can attempt quizzes in enrolled courses and view own attempts; teachers see attempts for their courses
+
+2. **Types** (`src/integrations/supabase/types.ts`):
+   - Added `quizzes`, `quiz_questions`, `quiz_attempts` table types with full Row/Insert/Update/Relationships
+
+3. **Hooks** (3 new files):
+   - `src/hooks/useQuizzes.ts` — fetches quizzes for a course
+   - `src/hooks/useQuizQuestions.ts` — fetches questions for a quiz ordered by position
+   - `src/hooks/useQuizAttempts.ts` — fetches attempts by student for a quiz
+
+4. **Validations** (`src/lib/validations.ts`):
+   - Added `quizSchema` (title, description, time_limit, attempt_limit, randomize, show_answers)
+   - Added `quizQuestionSchema` (type enum, question_text, options, correct_answer union type, points)
+
+5. **QuizBuilder** (`src/components/QuizBuilder.tsx`):
+   - Teacher UI for managing questions within a quiz
+   - QuestionCard: displays question with type badge, options (MCQ highlighted), correct answer
+   - AddQuestionForm: type selector, question text, type-specific inputs (MCQ options with radio select, T/F radio, fill-blank text), points
+   - Delete question with confirmation
+
+6. **TeacherCourseDetail** (`src/pages/teacher/TeacherCourseDetail.tsx`):
+   - Added "Quizzes" tab with quiz count badge
+   - AddQuizForm dialog: title, description, time limit, attempt limit, randomize toggle, show answers toggle
+   - Each quiz renders a QuizBuilder component
+
+7. **QuizPage** (`src/pages/QuizPage.tsx`):
+   - Pre-quiz screen: quiz info, attempt count, start/retake button, attempt limit enforcement
+   - Quiz-taking UI: numbered question navigation buttons (color-coded: current/answered/unanswered)
+   - Progress bar showing answered/total
+   - MCQ: clickable option cards with selection highlight
+   - True/False: two large toggle buttons
+   - Fill-blank: text input
+   - Timer component (countdown from time_limit, auto-submit on expiry)
+   - Previous/Next navigation, Submit button with unanswered warning
+   - Auto-grading: MCQ exact match, T/F exact match, fill-blank case-insensitive compare
+   - Resumes in-progress attempts (loads saved answers)
+
+8. **QuizResults** (`src/pages/QuizResults.tsx`):
+   - Score summary card: points, percentage, progress bar, grade badge (Excellent/Passing/Needs Improvement)
+   - Per-question breakdown: check/X/minus icons, user answer vs correct answer
+   - MCQ: green highlight on correct, red on wrong user choice
+   - T/F and fill-blank: inline correct answer display
+   - Points per question shown
+   - Only shown if quiz.show_answers is true
+
+9. **CourseDetail** (`src/pages/CourseDetail.tsx`):
+   - Added "Quizzes" tab with quiz list cards (title, time limit, attempt count)
+   - Links to QuizPage
+
+10. **Routes** (`src/App.tsx`):
+    - `/courses/:courseId/quizzes/:quizId` → QuizPage
+    - `/courses/:courseId/quizzes/:quizId/results/:attemptId` → QuizResults
+
+11. **Seed Data** (appended to `supabase/seed.sql`):
+    - 3 quizzes (one per course): Algebra (15min, 2 attempts), Physics (20min, randomized), Python (10min, 3 attempts)
+    - 14 questions total: MCQ, True/False, Fill-in-the-blank across all three quizzes
+
+12. **QA**: 0 type errors, build success, 52/52 tests passing
+
+**Teaching notes:**
+- **JSONB for polymorphic data:** `correct_answer` stores different types per question: number (MCQ option index), boolean (T/F), string (fill-blank). JSONB handles this naturally — the application layer casts based on `type`. This avoids separate columns or tables for each question type.
+- **Attempt lifecycle:** An attempt starts as a row with `completed_at = NULL`. The student's answers are saved to `answers` JSONB. On submit, the client computes the score and sets `completed_at`. This two-phase approach lets us detect in-progress attempts and resume them.
+- **Client-side grading:** Auto-grading happens in the browser, not via a DB function. This is simpler and fine for MCQ/T-F/fill-blank. For more complex grading (partial credit, essay), you'd move to a server-side function. The score is stored on the attempt row — trusted because RLS ensures students can only update their own attempts.
+- **Timer with server timestamp:** `started_at` comes from the DB (`DEFAULT now()`), so the timer is anchored to server time. The client computes remaining = time_limit - (now - started_at). On expiry, `onExpire` calls `gradeAndSubmit` automatically.
+- **Question shuffling:** When `randomize` is true, `shuffleArray` reorders questions client-side using Fisher-Yates. The shuffle happens in `useMemo` keyed on `rawQuestions` and `randomize`, so it's stable across re-renders but different per attempt load.
+
+---

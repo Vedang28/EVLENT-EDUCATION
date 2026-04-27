@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { courseSchema } from "@/lib/validations";
+import ImageUpload from "@/components/ImageUpload";
 
 export default function CreateCourse() {
   const { user } = useAuth();
@@ -25,6 +26,7 @@ export default function CreateCourse() {
   const [description, setDescription] = useState("");
   const [subjectId, setSubjectId] = useState<string>("");
   const [gradeLevelId, setGradeLevelId] = useState<string>("");
+  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
 
   const { data: subjects } = useSubjects();
   const { data: gradeLevels } = useGradeLevels();
@@ -41,6 +43,7 @@ export default function CreateCourse() {
           teacher_id: user!.id,
           subject_id: subjectId || null,
           grade_level_id: gradeLevelId || null,
+          thumbnail_url: thumbnailUrl,
         })
         .select()
         .single();
@@ -125,6 +128,10 @@ export default function CreateCourse() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Thumbnail (optional)</Label>
+            <ImageUpload value={thumbnailUrl} onChange={setThumbnailUrl} bucket="course-thumbnails" folder={user!.id} />
           </div>
           <Button
             onClick={() => createMutation.mutate()}

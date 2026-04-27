@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import logo from "@/assets/logo.jpeg";
+import { registerSchema } from "@/lib/validations";
 
 export default function Register() {
   const { user } = useAuth();
@@ -21,6 +22,11 @@ export default function Register() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    const result = registerSchema.safeParse({ name, email, password });
+    if (!result.success) {
+      toast.error(result.error.errors[0].message);
+      return;
+    }
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email,
@@ -31,7 +37,7 @@ export default function Register() {
       },
     });
     if (error) {
-      toast.error(error.message);
+      toast.error("Registration failed. Please try again.");
     } else {
       toast.success("Check your email to confirm your account!");
     }

@@ -175,6 +175,7 @@ export default function Dashboard() {
                     courseId={enrollment.course_id}
                     title={enrollment.courses?.title}
                     description={enrollment.courses?.description}
+                    thumbnailUrl={enrollment.courses?.thumbnail_url}
                   />
                 ))}
               </div>

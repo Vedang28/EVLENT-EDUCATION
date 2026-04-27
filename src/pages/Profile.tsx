@@ -84,21 +84,6 @@ export default function Profile() {
     onError: (err: Error) => toast.error(err.message),
   });
 
-  const updateGradeLevelMutation = useMutation({
-    mutationFn: async (gradeLevelId: string | null) => {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ grade_level_id: gradeLevelId })
-        .eq("user_id", user!.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["profile"] });
-      toast.success("Grade level updated!");
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
-
   const addSubjectExpertise = useMutation({
     mutationFn: async (subjectId: string) => {
       const { error } = await supabase
@@ -161,7 +146,7 @@ export default function Profile() {
         </CardContent>
       </Card>
 
-      {/* Student: Grade Level */}
+      {/* Student: Grade Level (read-only, set by admin) */}
       {isStudent && (
         <Card>
           <CardHeader>
@@ -169,21 +154,14 @@ export default function Profile() {
               <GraduationCap className="h-5 w-5" /> Grade Level
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">Select your current grade level to get personalized course recommendations.</p>
-            <Select
-              value={profile?.grade_level_id ?? ""}
-              onValueChange={(v) => updateGradeLevelMutation.mutate(v || null)}
-            >
-              <SelectTrigger className="w-[250px]">
-                <SelectValue placeholder="Select your grade" />
-              </SelectTrigger>
-              <SelectContent>
-                {gradeLevels?.map((g) => (
-                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <CardContent>
+            {profile?.grade_level_id ? (
+              <Badge variant="secondary" className="text-sm px-3 py-1">
+                {gradeLevels?.find((g) => g.id === profile.grade_level_id)?.name ?? "Assigned"}
+              </Badge>
+            ) : (
+              <p className="text-sm text-muted-foreground">Not assigned yet. Contact your admin to set your grade level.</p>
+            )}
           </CardContent>
         </Card>
       )}

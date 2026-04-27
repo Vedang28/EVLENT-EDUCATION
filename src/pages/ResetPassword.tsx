@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import logo from "@/assets/logo.jpeg";
+import { passwordSchema } from "@/lib/validations";
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -23,10 +24,15 @@ export default function ResetPassword() {
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
+    const result = passwordSchema.safeParse({ password });
+    if (!result.success) {
+      toast.error(result.error.errors[0].message);
+      return;
+    }
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password });
+    const { error } = await supabase.auth.updateUser({ password: result.data.password });
     if (error) {
-      toast.error(error.message);
+      toast.error("Failed to update password. Please try again.");
     } else {
       toast.success("Password updated successfully!");
       navigate("/dashboard");

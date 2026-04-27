@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle2, Circle } from "lucide-react";
 import { useCourseProgress } from "@/hooks/useCourseProgress";
+import RichTextViewer from "@/components/RichTextViewer";
 
 export default function LessonPage() {
   const { courseId, lessonId } = useParams();
@@ -50,7 +51,7 @@ export default function LessonPage() {
 
       <h1 className="text-3xl font-bold tracking-tight">{lesson.title}</h1>
 
-      {lesson.video_url && (
+      {lesson.video_url && /^https:\/\//.test(lesson.video_url) && (
         <Card className="overflow-hidden">
           <CardContent className="p-0">
             <div className="aspect-video">
@@ -58,6 +59,7 @@ export default function LessonPage() {
                 src={lesson.video_url}
                 className="h-full w-full"
                 allowFullScreen
+                sandbox="allow-scripts allow-same-origin allow-presentation"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               />
             </div>
@@ -67,8 +69,8 @@ export default function LessonPage() {
 
       {lesson.content && (
         <Card>
-          <CardContent className="p-6 prose prose-sm max-w-none">
-            <div dangerouslySetInnerHTML={{ __html: lesson.content }} />
+          <CardContent className="p-6">
+            <RichTextViewer content={lesson.content} />
           </CardContent>
         </Card>
       )}

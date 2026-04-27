@@ -12,6 +12,7 @@ import { ArrowLeft, Upload, Clock, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useState } from "react";
+import { submissionSchema } from "@/lib/validations";
 
 export default function AssignmentPage() {
   const { courseId, assignmentId } = useParams();
@@ -42,19 +43,40 @@ export default function AssignmentPage() {
     enabled: !!user,
   });
 
+  const ALLOWED_FILE_TYPES = [
+    "application/pdf",
+    "text/plain",
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ];
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
   const submitMutation = useMutation({
     mutationFn: async () => {
       let fileUrl: string | null = null;
       if (file) {
+        if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+          throw new Error("Invalid file type. Allowed: PDF, TXT, images, Word, PowerPoint.");
+        }
+        if (file.size > MAX_FILE_SIZE) {
+          throw new Error("File too large. Maximum size is 10MB.");
+        }
         const filePath = `${user!.id}/${assignmentId}/${file.name}`;
         const { error: uploadErr } = await supabase.storage.from("submissions").upload(filePath, file);
         if (uploadErr) throw uploadErr;
         fileUrl = filePath;
       }
+      const result = submissionSchema.safeParse({ text_response: textResponse || undefined });
+      if (!result.success) throw new Error(result.error.errors[0].message);
       const { error } = await supabase.from("submissions").insert({
         assignment_id: assignmentId!,
         student_id: user!.id,
-        text_response: textResponse || null,
+        text_response: result.data.text_response ?? null,
         file_url: fileUrl,
       });
       if (error) throw error;
@@ -63,7 +85,7 @@ export default function AssignmentPage() {
       queryClient.invalidateQueries({ queryKey: ["submission", assignmentId] });
       toast.success("Assignment submitted!");
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   if (!assignment) {

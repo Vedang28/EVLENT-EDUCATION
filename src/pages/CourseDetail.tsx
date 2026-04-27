@@ -6,9 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, FileText, Video, Clock, ChevronRight, CheckCircle2 } from "lucide-react";
+import { BookOpen, FileText, Video, Clock, ChevronRight, CheckCircle2, HelpCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useCourseProgress } from "@/hooks/useCourseProgress";
+import { useQuizzes } from "@/hooks/useQuizzes";
+import { useQuizAttempts } from "@/hooks/useQuizAttempts";
 
 export default function CourseDetail() {
   const { courseId } = useParams();
@@ -47,6 +49,8 @@ export default function CourseDetail() {
     },
   });
 
+  const { data: quizzes } = useQuizzes(courseId);
+
   const { data: submissions } = useQuery({
     queryKey: ["my-submissions", courseId, user?.id],
     queryFn: async () => {
@@ -74,6 +78,11 @@ export default function CourseDetail() {
 
   return (
     <div className="space-y-6 max-w-4xl">
+      {course.thumbnail_url && (
+        <div className="rounded-lg overflow-hidden">
+          <img src={course.thumbnail_url} alt={course.title} className="w-full h-48 object-cover" />
+        </div>
+      )}
       <div>
         <h1 className="text-3xl font-bold tracking-tight">{course.title}</h1>
         <p className="text-muted-foreground mt-1">{course.description}</p>
@@ -100,6 +109,7 @@ export default function CourseDetail() {
         <TabsList>
           <TabsTrigger value="lessons">Lessons</TabsTrigger>
           <TabsTrigger value="assignments">Assignments</TabsTrigger>
+          <TabsTrigger value="quizzes">Quizzes</TabsTrigger>
           <TabsTrigger value="live">Live Classes</TabsTrigger>
         </TabsList>
 
@@ -189,6 +199,36 @@ export default function CourseDetail() {
           )}
         </TabsContent>
 
+        <TabsContent value="quizzes" className="space-y-3 mt-4">
+          {!quizzes?.length ? (
+            <p className="text-muted-foreground py-8 text-center">No quizzes available yet</p>
+          ) : (
+            quizzes.map((quiz) => (
+              <Link key={quiz.id} to={`/courses/${courseId}/quizzes/${quiz.id}`} className="block">
+                <Card className="hover:shadow-md transition-shadow">
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <HelpCircle className="h-4 w-4 text-primary shrink-0" />
+                        <p className="font-medium">{quiz.title}</p>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                        {quiz.time_limit && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> {quiz.time_limit} min
+                          </span>
+                        )}
+                        <span>{quiz.attempt_limit} attempt{quiz.attempt_limit !== 1 ? "s" : ""}</span>
+                      </div>
+                    </div>
+                    <Badge variant="outline">Take Quiz</Badge>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))
+          )}
+        </TabsContent>
+
         <TabsContent value="live" className="space-y-3 mt-4">
           {!liveClasses?.length ? (
             <p className="text-muted-foreground py-8 text-center">No live classes scheduled</p>
@@ -202,7 +242,7 @@ export default function CourseDetail() {
                       {format(new Date(lc.start_time), "MMM d, yyyy 'at' h:mm a")}
                     </p>
                   </div>
-                  {lc.meeting_url && (
+                  {lc.meeting_url && /^https?:\/\//.test(lc.meeting_url) && (
                     <a
                       href={lc.meeting_url}
                       target="_blank"

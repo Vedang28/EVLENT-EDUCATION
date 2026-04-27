@@ -66,7 +66,7 @@ export default function LiveClasses() {
                       {format(new Date(lc.start_time), "MMM d, yyyy 'at' h:mm a")}
                     </p>
                   </div>
-                  {lc.meeting_url && (
+                  {lc.meeting_url && /^https?:\/\//.test(lc.meeting_url) && (
                     <a
                       href={lc.meeting_url}
                       target="_blank"
