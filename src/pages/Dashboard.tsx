@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, ClipboardCheck, Video, Bell, Award } from "lucide-react";
+import { BookOpen, ClipboardCheck, Video, Bell, Award, User } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
 import { format, formatDistanceToNow } from "date-fns";
 import { EnrolledCourseCard } from "@/components/EnrolledCourseCard";
@@ -99,6 +99,24 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
+  const { data: assignedTutors } = useQuery({
+    queryKey: ["assigned-tutors", user?.id],
+    queryFn: async () => {
+      const { data: assignments } = await supabase
+        .from("teacher_students")
+        .select("teacher_id")
+        .eq("student_id", user!.id);
+      if (!assignments?.length) return [];
+      const teacherIds = assignments.map((a) => a.teacher_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, name, email")
+        .in("user_id", teacherIds);
+      return profiles ?? [];
+    },
+    enabled: !!user,
+  });
+
   if (!roleLoading && isAdmin) return <Navigate to="/admin" replace />;
   if (!roleLoading && isTeacher) return <Navigate to="/teacher" replace />;
 
@@ -158,6 +176,32 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* My Tutor */}
+      {assignedTutors && assignedTutors.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <User className="h-5 w-5" /> My Tutor{assignedTutors.length > 1 ? "s" : ""}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              {assignedTutors.map((tutor: any) => (
+                <div key={tutor.user_id} className="flex items-center gap-3 rounded-lg border p-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+                    <User className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm">{tutor.name}</p>
+                    <p className="text-xs text-muted-foreground">{tutor.email}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Enrolled Courses */}

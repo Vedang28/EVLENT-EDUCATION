@@ -41,6 +41,7 @@ const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminCourses = lazy(() => import("./pages/admin/AdminCourses"));
 const AdminSubjects = lazy(() => import("./pages/admin/AdminSubjects"));
 const AdminGradeLevels = lazy(() => import("./pages/admin/AdminGradeLevels"));
+const AdminLiveClasses = lazy(() => import("./pages/admin/AdminLiveClasses"));
 const QuizPage = lazy(() => import("./pages/QuizPage"));
 const QuizResults = lazy(() => import("./pages/QuizResults"));
 
@@ -132,6 +133,7 @@ const App = () => (
                 <Route path="/admin/courses" element={<RoleGuard role="admin"><AdminCourses /></RoleGuard>} />
                 <Route path="/admin/subjects" element={<RoleGuard role="admin"><AdminSubjects /></RoleGuard>} />
                 <Route path="/admin/grade-levels" element={<RoleGuard role="admin"><AdminGradeLevels /></RoleGuard>} />
+                <Route path="/admin/live-classes" element={<RoleGuard role="admin"><AdminLiveClasses /></RoleGuard>} />
               </Route>
 
               <Route path="/" element={<Navigate to="/dashboard" replace />} />

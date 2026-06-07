@@ -65,6 +65,7 @@ const adminNav = [
   { title: "Courses", url: "/admin/courses", icon: BookOpen },
   { title: "Subjects", url: "/admin/subjects", icon: FlaskConical },
   { title: "Grade Levels", url: "/admin/grade-levels", icon: GraduationCap },
+  { title: "Live Classes", url: "/admin/live-classes", icon: Video },
   { title: "Notifications", url: "/notifications", icon: Bell },
   { title: "Profile", url: "/profile", icon: User },
 ];
