@@ -558,6 +558,41 @@ export type Database = {
         }
         Relationships: []
       }
+      video_progress: {
+        Row: {
+          id: string
+          student_id: string
+          lesson_id: string
+          position_seconds: number
+          duration_seconds: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          student_id: string
+          lesson_id: string
+          position_seconds?: number
+          duration_seconds?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          student_id?: string
+          lesson_id?: string
+          position_seconds?: number
+          duration_seconds?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teacher_subjects: {
         Row: {
           id: string

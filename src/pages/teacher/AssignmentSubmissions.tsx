@@ -12,8 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Check } from "lucide-react";
+import { ArrowLeft, Loader2, Check, Download, FileText, Image as ImageIcon, File as FileIcon } from "lucide-react";
 import { format } from "date-fns";
+import { useSignedUrl } from "@/hooks/useSignedUrl";
+import { getFileIcon, getFileExtension } from "@/lib/fileValidation";
 
 export default function AssignmentSubmissions() {
   const { courseId, assignmentId } = useParams();
@@ -23,6 +25,7 @@ export default function AssignmentSubmissions() {
   const [gradingSubmission, setGradingSubmission] = useState<any>(null);
   const [grade, setGrade] = useState("");
   const [feedback, setFeedback] = useState("");
+  const { downloadFile, isLoading: downloadLoading } = useSignedUrl("submissions");
 
   const { data: assignment } = useQuery({
     queryKey: ["assignment", assignmentId],
@@ -91,23 +94,53 @@ export default function AssignmentSubmissions() {
           ) : (
             <div className="divide-y">
               {submissions.map((sub: any) => (
-                <div key={sub.id} className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
+                <div key={sub.id} className="flex items-center justify-between p-4 gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary shrink-0">
                       {sub.profiles?.name?.[0]?.toUpperCase() ?? "S"}
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="font-medium text-sm">{sub.profiles?.name || "Unknown"}</p>
                       <p className="text-xs text-muted-foreground">{format(new Date(sub.submitted_at), "MMM d 'at' h:mm a")}</p>
+                      {sub.file_url && (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          {getFileIcon(sub.file_url) === "file-text" ? (
+                            <FileText className="h-3 w-3 text-muted-foreground" />
+                          ) : getFileIcon(sub.file_url) === "image" ? (
+                            <ImageIcon className="h-3 w-3 text-muted-foreground" />
+                          ) : (
+                            <FileIcon className="h-3 w-3 text-muted-foreground" />
+                          )}
+                          <span className="text-xs text-muted-foreground truncate">
+                            {sub.file_url.split("/").pop()}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  {sub.grade !== null ? (
-                    <Badge className="bg-accent text-accent-foreground">{sub.grade}/{assignment?.max_score}</Badge>
-                  ) : (
-                    <Button size="sm" onClick={() => { setGradingSubmission(sub); setGrade(""); setFeedback(""); }}>
-                      Grade
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {sub.file_url && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => downloadFile(sub.file_url)}
+                        disabled={downloadLoading}
+                      >
+                        {downloadLoading ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Download className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    )}
+                    {sub.grade !== null ? (
+                      <Badge className="bg-accent text-accent-foreground">{sub.grade}/{assignment?.max_score}</Badge>
+                    ) : (
+                      <Button size="sm" onClick={() => { setGradingSubmission(sub); setGrade(""); setFeedback(""); }}>
+                        Grade
+                      </Button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -129,7 +162,31 @@ export default function AssignmentSubmissions() {
                   <div className="rounded-lg border p-3 text-sm max-h-40 overflow-auto">{gradingSubmission.text_response}</div>
                 </div>
               )}
-              {gradingSubmission.file_url && <p className="text-sm">📎 File submitted</p>}
+              {gradingSubmission.file_url && (
+                <div className="flex items-center gap-2">
+                  {getFileIcon(gradingSubmission.file_url) === "file-text" ? (
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                  ) : getFileIcon(gradingSubmission.file_url) === "image" ? (
+                    <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <FileIcon className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <span className="text-sm truncate">{gradingSubmission.file_url.split("/").pop()}</span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => downloadFile(gradingSubmission.file_url)}
+                    disabled={downloadLoading}
+                  >
+                    {downloadLoading ? (
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                    ) : (
+                      <Download className="mr-1 h-3 w-3" />
+                    )}
+                    Download
+                  </Button>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label>Grade (max {assignment?.max_score})</Label>
                 <Input type="number" min={0} max={assignment?.max_score} value={grade} onChange={(e) => setGrade(e.target.value)} />

@@ -8,11 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Upload, Clock, Loader2 } from "lucide-react";
+import { ArrowLeft, Upload, Clock, Loader2, Download, FileText, Image, File as FileIcon } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useState } from "react";
 import { submissionSchema } from "@/lib/validations";
+import { validateSubmissionFile, getFileIcon, getFileExtension } from "@/lib/fileValidation";
+import { useSignedUrl } from "@/hooks/useSignedUrl";
 
 export default function AssignmentPage() {
   const { courseId, assignmentId } = useParams();
@@ -20,6 +22,7 @@ export default function AssignmentPage() {
   const queryClient = useQueryClient();
   const [textResponse, setTextResponse] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const { downloadFile, isLoading: downloadLoading } = useSignedUrl("submissions");
 
   const { data: assignment } = useQuery({
     queryKey: ["assignment", assignmentId],
@@ -43,28 +46,13 @@ export default function AssignmentPage() {
     enabled: !!user,
   });
 
-  const ALLOWED_FILE_TYPES = [
-    "application/pdf",
-    "text/plain",
-    "image/jpeg",
-    "image/png",
-    "image/gif",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-powerpoint",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  ];
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-
   const submitMutation = useMutation({
     mutationFn: async () => {
       let fileUrl: string | null = null;
       if (file) {
-        if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-          throw new Error("Invalid file type. Allowed: PDF, TXT, images, Word, PowerPoint.");
-        }
-        if (file.size > MAX_FILE_SIZE) {
-          throw new Error("File too large. Maximum size is 10MB.");
+        const validation = validateSubmissionFile(file);
+        if (!validation.valid) {
+          throw new Error(validation.error);
         }
         const filePath = `${user!.id}/${assignmentId}/${file.name}`;
         const { error: uploadErr } = await supabase.storage.from("submissions").upload(filePath, file);
@@ -141,7 +129,31 @@ export default function AssignmentPage() {
               <div className="rounded-lg bg-muted p-3 text-sm">{submission.text_response}</div>
             )}
             {submission.file_url && (
-              <p className="text-sm">📎 File attached</p>
+              <div className="flex items-center gap-2">
+                {getFileIcon(submission.file_url) === "file-text" ? (
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                ) : getFileIcon(submission.file_url) === "image" ? (
+                  <Image className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <FileIcon className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="text-sm text-muted-foreground">
+                  {submission.file_url.split("/").pop()} ({getFileExtension(submission.file_url)})
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => downloadFile(submission.file_url!)}
+                  disabled={downloadLoading}
+                >
+                  {downloadLoading ? (
+                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                  ) : (
+                    <Download className="mr-1 h-3 w-3" />
+                  )}
+                  Download
+                </Button>
+              </div>
             )}
             {submission.grade !== null && (
               <div className="flex items-center gap-3 pt-2 border-t">
@@ -179,7 +191,20 @@ export default function AssignmentPage() {
               <Label>File Upload (optional)</Label>
               <Input
                 type="file"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt,.ppt,.pptx"
+                onChange={(e) => {
+                  const selected = e.target.files?.[0] ?? null;
+                  if (selected) {
+                    const result = validateSubmissionFile(selected);
+                    if (!result.valid) {
+                      toast.error(result.error);
+                      e.target.value = "";
+                      setFile(null);
+                      return;
+                    }
+                  }
+                  setFile(selected);
+                }}
               />
             </div>
             <Button

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle2, Circle } from "lucide-react";
 import { useCourseProgress } from "@/hooks/useCourseProgress";
 import RichTextViewer from "@/components/RichTextViewer";
+import VideoPlayer from "@/components/VideoPlayer";
 
 export default function LessonPage() {
   const { courseId, lessonId } = useParams();
@@ -52,19 +53,7 @@ export default function LessonPage() {
       <h1 className="text-3xl font-bold tracking-tight">{lesson.title}</h1>
 
       {lesson.video_url && /^https:\/\//.test(lesson.video_url) && (
-        <Card className="overflow-hidden">
-          <CardContent className="p-0">
-            <div className="aspect-video">
-              <iframe
-                src={lesson.video_url}
-                className="h-full w-full"
-                allowFullScreen
-                sandbox="allow-scripts allow-same-origin allow-presentation"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <VideoPlayer url={lesson.video_url} lessonId={lesson.id} />
       )}
 
       {lesson.content && (
