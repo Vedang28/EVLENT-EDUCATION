@@ -5,12 +5,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { BookOpen, ClipboardCheck, Video, Bell, Award } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { format, formatDistanceToNow } from "date-fns";
 import { EnrolledCourseCard } from "@/components/EnrolledCourseCard";
+import { useUserRole } from "@/hooks/useUserRole";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { isAdmin, isTeacher, isLoading: roleLoading } = useUserRole();
 
   const { data: profile } = useQuery({
     queryKey: ["profile", user?.id],
@@ -96,6 +98,9 @@ export default function Dashboard() {
     },
     enabled: !!user,
   });
+
+  if (!roleLoading && isAdmin) return <Navigate to="/admin" replace />;
+  if (!roleLoading && isTeacher) return <Navigate to="/teacher" replace />;
 
   const greeting = profile?.name ? `Welcome back, ${profile.name}!` : "Welcome back!";
 

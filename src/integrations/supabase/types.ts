@@ -593,6 +593,32 @@ export type Database = {
           },
         ]
       }
+      student_subjects: {
+        Row: {
+          id: string
+          student_id: string
+          subject_id: string
+        }
+        Insert: {
+          id?: string
+          student_id: string
+          subject_id: string
+        }
+        Update: {
+          id?: string
+          student_id?: string
+          subject_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_subjects_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teacher_subjects: {
         Row: {
           id: string

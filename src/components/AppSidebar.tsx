@@ -10,7 +10,6 @@ import {
   Users,
   FileEdit,
   GraduationCap,
-  ShieldCheck,
   BarChart3,
   Calendar,
   Clock,
@@ -144,62 +143,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Quick-switch links for elevated roles */}
-        {(isTeacher || isAdmin) && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="px-4">
-              {!collapsed && (
-                <span className="text-xs text-muted-foreground">
-                  Switch View
-                </span>
-              )}
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to="/dashboard"
-                      className="hover:bg-sidebar-accent/50"
-                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    >
-                      <GraduationCap className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>Student Portal</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                {isTeacher && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to="/teacher"
-                        className="hover:bg-sidebar-accent/50"
-                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      >
-                        <ShieldCheck className="mr-2 h-4 w-4" />
-                        {!collapsed && <span>Teacher Portal</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
-                {isAdmin && (
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to="/admin"
-                        className="hover:bg-sidebar-accent/50"
-                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      >
-                        <BarChart3 className="mr-2 h-4 w-4" />
-                        {!collapsed && <span>Admin Portal</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
       </SidebarContent>
       <SidebarFooter className="p-2">
         <Button

@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
-import { Search, ShieldCheck, UserPlus, Trash2, Link2, Unlink, GraduationCap } from "lucide-react";
+import { Search, ShieldCheck, UserPlus, Trash2, Link2, GraduationCap, ChevronRight, X } from "lucide-react";
 import type { AppRole } from "@/hooks/useUserRole";
 import { useGradeLevels } from "@/hooks/useGradeLevels";
 
@@ -30,6 +30,9 @@ export default function AdminUsers() {
   // Assign student state
   const [selectedTeacher, setSelectedTeacher] = useState<string>("");
   const [selectedStudent, setSelectedStudent] = useState<string>("");
+
+  // Teacher detail dialog
+  const [detailTeacherId, setDetailTeacherId] = useState<string | null>(null);
 
   const { data: gradeLevels } = useGradeLevels();
 
@@ -53,6 +56,22 @@ export default function AdminUsers() {
     queryKey: ["admin-teacher-students"],
     queryFn: async () => {
       const { data } = await supabase.from("teacher_students").select("*");
+      return data ?? [];
+    },
+  });
+
+  const { data: subjects } = useQuery({
+    queryKey: ["admin-subjects"],
+    queryFn: async () => {
+      const { data } = await supabase.from("subjects").select("*").order("name");
+      return data ?? [];
+    },
+  });
+
+  const { data: studentSubjects } = useQuery({
+    queryKey: ["admin-student-subjects"],
+    queryFn: async () => {
+      const { data } = await supabase.from("student_subjects").select("*, subjects(name)");
       return data ?? [];
     },
   });
@@ -105,9 +124,11 @@ export default function AdminUsers() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-teacher-students"] });
       toast({ title: "Student assigned to teacher" });
-      setSelectedTeacher("");
-      setSelectedStudent("");
-      setAssignOpen(false);
+      if (!detailTeacherId) {
+        setSelectedTeacher("");
+        setSelectedStudent("");
+        setAssignOpen(false);
+      }
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -123,6 +144,39 @@ export default function AdminUsers() {
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
+
+  const addStudentSubjectMutation = useMutation({
+    mutationFn: async ({ studentId, subjectId }: { studentId: string; subjectId: string }) => {
+      const { error } = await supabase.from("student_subjects").insert({ student_id: studentId, subject_id: subjectId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-student-subjects"] });
+      toast({ title: "Subject assigned to student" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const removeStudentSubjectMutation = useMutation({
+    mutationFn: async ({ studentId, subjectId }: { studentId: string; subjectId: string }) => {
+      const { error } = await supabase.from("student_subjects").delete().eq("student_id", studentId).eq("subject_id", subjectId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-student-subjects"] });
+      toast({ title: "Subject removed from student" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const getStudentSubjects = (studentUserId: string) => {
+    return studentSubjects?.filter((ss: any) => ss.student_id === studentUserId) ?? [];
+  };
+
+  const getUnassignedStudentSubjects = (studentUserId: string) => {
+    const assigned = getStudentSubjects(studentUserId).map((ss: any) => ss.subject_id);
+    return subjects?.filter((s) => !assigned.includes(s.id)) ?? [];
+  };
 
   const updateGradeLevelMutation = useMutation({
     mutationFn: async ({ userId, gradeLevelId }: { userId: string; gradeLevelId: string | null }) => {
@@ -321,52 +375,151 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      {/* Teacher-Student Assignments Overview */}
+      {/* Teacher Assignments Overview */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <Link2 className="h-5 w-5" /> Teacher-Student Assignments
+            <Link2 className="h-5 w-5" /> Teachers
           </CardTitle>
         </CardHeader>
         <CardContent>
           {teachers.length === 0 ? (
             <p className="text-muted-foreground text-sm py-4 text-center">No teachers yet</p>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {teachers.map((teacher) => {
-                const assigned = getAssignedStudents(teacher.user_id);
+                const assignedStudents = getAssignedStudents(teacher.user_id);
                 return (
-                  <div key={teacher.user_id} className="rounded-lg border p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="default">Teacher</Badge>
-                      <span className="font-medium">{teacher.name || teacher.email}</span>
-                      <span className="text-sm text-muted-foreground">({assigned.length} students)</span>
-                    </div>
-                    {assigned.length > 0 ? (
-                      <div className="flex flex-wrap gap-2 ml-4">
-                        {assigned.map((student: any) => (
-                          <Badge key={student.user_id} variant="secondary" className="gap-1">
-                            {student.name || student.email}
-                            <button
-                              onClick={() => unassignStudentMutation.mutate({ teacherId: teacher.user_id, studentId: student.user_id })}
-                              className="ml-1 hover:text-destructive"
-                              title="Unassign student"
-                            >
-                              <Unlink className="h-3 w-3" />
-                            </button>
-                          </Badge>
-                        ))}
+                  <button
+                    key={teacher.user_id}
+                    onClick={() => setDetailTeacherId(teacher.user_id)}
+                    className="w-full rounded-lg border p-4 text-left hover:bg-muted/50 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="default">Teacher</Badge>
+                        <span className="font-medium">{teacher.name || teacher.email}</span>
                       </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground ml-4">No students assigned</p>
-                    )}
-                  </div>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                    <div className="mt-2 ml-1 text-sm text-muted-foreground">
+                      {assignedStudents.length} students
+                    </div>
+                  </button>
                 );
               })}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Teacher Detail Dialog */}
+      <Dialog open={!!detailTeacherId} onOpenChange={(open) => { if (!open) setDetailTeacherId(null); }}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          {(() => {
+            const teacher = profiles?.find((p) => p.user_id === detailTeacherId);
+            if (!teacher || !detailTeacherId) return null;
+            const assignedStudents = getAssignedStudents(detailTeacherId);
+            const availableStudents = students.filter(
+              (s) => !teacherStudents?.some((ts) => ts.teacher_id === detailTeacherId && ts.student_id === s.user_id)
+            );
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Badge variant="default">Teacher</Badge>
+                    {teacher.name || teacher.email}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  {/* Add Student */}
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-semibold text-sm">Students ({assignedStudents.length})</span>
+                  </div>
+
+                  {availableStudents.length > 0 && (
+                    <Select
+                      value=""
+                      onValueChange={(studentId) =>
+                        assignStudentMutation.mutate({ teacherId: detailTeacherId, studentId })
+                      }
+                    >
+                      <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="+ Add student…" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableStudents.map((s) => (
+                          <SelectItem key={s.user_id} value={s.user_id}>{s.name || s.email}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+
+                  {/* Student cards with per-student subjects */}
+                  {assignedStudents.length > 0 ? (
+                    <div className="space-y-3">
+                      {assignedStudents.map((student: any) => {
+                        const sSubjects = getStudentSubjects(student.user_id);
+                        const availableSubs = getUnassignedStudentSubjects(student.user_id);
+                        return (
+                          <div key={student.user_id} className="rounded-lg border p-3 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium text-sm">{student.name || student.email}</span>
+                              <button
+                                onClick={() => unassignStudentMutation.mutate({ teacherId: detailTeacherId, studentId: student.user_id })}
+                                className="text-muted-foreground hover:text-destructive"
+                                title="Remove student"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {sSubjects.map((ss: any) => (
+                                <Badge key={ss.subject_id} variant="outline" className="gap-1 pr-1 text-xs">
+                                  {ss.subjects?.name || ss.subject_id}
+                                  <button
+                                    onClick={() => removeStudentSubjectMutation.mutate({ studentId: student.user_id, subjectId: ss.subject_id })}
+                                    className="ml-0.5 rounded-full p-0.5 hover:bg-destructive/20 hover:text-destructive"
+                                  >
+                                    <X className="h-2.5 w-2.5" />
+                                  </button>
+                                </Badge>
+                              ))}
+                              {availableSubs.length > 0 && (
+                                <Select
+                                  value=""
+                                  onValueChange={(subjectId) =>
+                                    addStudentSubjectMutation.mutate({ studentId: student.user_id, subjectId })
+                                  }
+                                >
+                                  <SelectTrigger className="h-6 text-xs w-[140px] border-dashed">
+                                    <SelectValue placeholder="+ Add subject" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {availableSubs.map((s) => (
+                                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No students assigned yet</p>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button onClick={() => setDetailTeacherId(null)}>Done</Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       {/* All Users Table */}
       <Card>

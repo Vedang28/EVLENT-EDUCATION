@@ -6,8 +6,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
-import { Trash2, BookOpen, Users, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Trash2, BookOpen, Users, CheckCircle, XCircle, Clock, Eye } from "lucide-react";
 import { format } from "date-fns";
+import { Link } from "react-router-dom";
 
 type CourseStatus = "pending" | "approved" | "rejected";
 
@@ -95,7 +96,11 @@ export default function AdminCourses() {
             const StatusIcon = cfg.icon;
             return (
               <TableRow key={c.id}>
-                <TableCell className="font-medium max-w-[250px] truncate">{c.title}</TableCell>
+                <TableCell className="font-medium max-w-[250px]">
+                          <Link to={`/courses/${c.id}`} className="hover:underline text-primary truncate block">
+                            {c.title}
+                          </Link>
+                        </TableCell>
                 <TableCell className="text-muted-foreground">{getTeacherName(c.teacher_id)}</TableCell>
                 <TableCell>
                   <Badge variant={cfg.variant} className="gap-1">
@@ -110,6 +115,11 @@ export default function AdminCourses() {
                 <TableCell className="text-muted-foreground text-sm">{format(new Date(c.created_at), "MMM d, yyyy")}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1" asChild>
+                      <Link to={`/courses/${c.id}`}>
+                        <Eye className="h-3 w-3" /> View
+                      </Link>
+                    </Button>
                     {status === "pending" && (
                       <>
                         <Button
